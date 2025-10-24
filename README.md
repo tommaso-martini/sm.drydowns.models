@@ -18,7 +18,7 @@ It reproduces model behaviour from the associated preprint:
 
 ## Installation
 
-Install locally (while developing):
+If you are developing or editing the source code locally, you can instead install from your local folder:
 
 ```r
 # install.packages("devtools")  # if not already installed
@@ -26,7 +26,7 @@ devtools::install_local(".")
 library(sm.drydowns.models)
 ```
 
-Once the repository is public, you can install directly from GitHub:
+Or you can install directly from GitHub:
 
 ```r
 devtools::install_github("tommasomartini/sm.drydowns.models")

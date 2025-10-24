@@ -16,7 +16,7 @@ It reproduces model behaviour from the associated preprint:
 
 ---
 
-## 🚀 Installation
+## Installation
 
 Install locally (while developing):
 
@@ -34,9 +34,9 @@ devtools::install_github("tommasomartini/sm.drydowns.models")
 
 ---
 
-## 💧 Quick examples
+## Quick examples
 
-### 1️⃣ DES (mono-layer drydown)
+### DES (desorptivity bucket model)
 
 ```r
 res_des <- des_simulate(
@@ -52,7 +52,7 @@ plot(res_des$series$theta, type = "l",
      main = "DES drydown (constant ET = 4 mm/day)")
 ```
 
-### 2️⃣ muSEC (multi-layer)
+### muSEC (multi-layer)
 
 ```r
 theta0 <- 0.30
@@ -83,7 +83,7 @@ vignette("musec-examples-annotated", package = "sm.drydowns.models")
 
 ---
 
-## 📖 Citation
+## Citation
 
 If you use this package, please cite:
 

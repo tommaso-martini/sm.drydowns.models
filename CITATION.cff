@@ -30,9 +30,11 @@ keywords:
 # Link the preprint that the software supports
 identifiers:
   - type: doi
+    value: 10.5281/zenodo.17435863
+    description: "DOI of the sm.drydowns.models R package on Zenodo"
+  - type: doi
     value: 10.2139/ssrn.5648370
     description: "Preprint describing the modelling framework validated with field TDR and remote sensing data"
-
 # Tell users how to cite the manuscript (preferred citation)
 preferred-citation:
   type: article

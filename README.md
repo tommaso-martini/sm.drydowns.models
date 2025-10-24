@@ -1,6 +1,7 @@
 # sm.drydowns.models — DES and muSEC Models for Soil Moisture Drydowns
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17435863.svg)](https://doi.org/10.5281/zenodo.17435863)
 
 This R package provides the **reference implementation** of two simplified hydrological models for soil moisture drydowns:
 

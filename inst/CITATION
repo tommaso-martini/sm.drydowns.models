@@ -9,5 +9,6 @@ citEntry(
              ),
   year     = "2025",
   note     = "R package version 1.0.0",
+  doi      = "10.5281/zenodo.17435863",
   url      = "https://doi.org/10.2139/ssrn.5648370"
 )

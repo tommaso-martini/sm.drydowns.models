@@ -1,0 +1,39 @@
+{
+  "title": "sm.drydowns.models: DES and muSEC models for soil moisture drydowns (R)",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Martini, Tommaso",
+      "affiliation": "Interuniversity Department of Regional and Urban Studies and Planning (DIST), University of Turin (UniTo), Italy",
+      "orcid": "0000-0000-0000-0000"
+    },
+    {
+      "name": "Olivero, Aurora",
+      "affiliation": "Interuniversity Department of Regional and Urban Studies and Planning (DIST), University of Turin (UniTo), Italy"
+    }
+  ],
+  "description": "Reference implementation in R of two simplified hydrological models for soil moisture drydowns: the desorptivity-based model (DES) and the multilayer Surface Evaporative Capacitance extension (muSEC), presented in the associated manuscript by Martini and Olivero et al. (2025).",
+  "keywords": [
+    "soil moisture",
+    "drydown",
+    "hydrology",
+    "stochastic hydrology",
+    "DES",
+    "muSEC",
+    "eco-hydrology",
+    "R package"
+  ],
+  "license": "MIT",
+  "related_identifiers": [
+    {
+      "relation": "isDescribedBy",
+      "identifier": "https://dx.doi.org/10.2139/ssrn.5648370",
+      "scheme": "doi"
+    }
+  ],
+  "notes": "This record corresponds to the versioned release of the R package 'sm.drydowns.models', which implements the DES and muSEC soil moisture drydown models. It provides the exact codebase used to reproduce simulations and figures in the associated publication. A new DOI will be automatically minted by Zenodo upon each GitHub release and linked to this concept DOI.",
+  "contributors": [],
+  "access_right": "open",
+  "language": "eng",
+  "version": "1.0.1"
+}

@@ -1,0 +1,241 @@
+---
+title: "muSEC drydowns examples: ET partitioning, soil moisture dynamics and profile visualization"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{muSEC drydowns examples: ET partitioning, soil moisture dynamics and profile visualization}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7, fig.height = 4.5, dpi = 120
+)
+
+library(sm.drydowns.models)
+set.seed(123)
+```
+
+## Overview
+
+This vignette demonstrates the **muSEC** model in both mono-layer and multi-layer configurations. The muSEC has been recently introduced in the pre-print https://dx.doi.org/10.2139/ssrn.5648370.  
+We also introduce here the plotting utilities `plot_profile_stairs()` and `plot_daily_profiles()` for visualizing the discretised vertical soil moisture profile dynamics.
+
+We cover:
+
+- Hourly vs. daily forcing, with automatic **daily → hourly expansion**.
+- **ET partitioning** via LAI:  
+  $E = ET_0 e^{-k_{ext} LAI}$, $T = ET_0 - E$, with default $k_{ext}=0.378$ and $LAI=1$.
+- **SEC evaporation**, **drainage** (exponential or power-law), and **Feddes** transpiration stress.
+- Daily-mean outputs and vertical profile visualization.
+
+> **Units**  
+> `ET`: mm per time step (mm/h or mm/day).  
+> `Ks`: m/h. If you have Ks in m/day, divide by 24.  
+> `n = 1/β`: the exponential shape parameter; smaller n (larger β) → faster decline.
+
+---
+
+## 1) Mono-layer example (constant hourly ET)
+
+We simulate 5 days with constant $ET_0 = 4$ mm/day (≈ 0.083 mm/h).  
+The model uses the default $LAI = 1$ and $k_{ext} = 0.378$.
+
+```{r}
+# --- Settings & simulation run ---
+dz <- 0.10
+H  <- 24 * 5
+ET <- rep(4 / 24, H) # mm/h
+
+theta_init <- 0.30
+
+res_mono <- musec_simulate(
+  theta_init = theta_init,
+  structure  = list(dz = dz),
+  Ks = 1 / 24, n = 1 / 7,
+  theta_s = 0.40, theta_r = 0.005,
+  theta_fc = 0.17, theta_wp = 0.01, theta_star = 0.16,
+  ET = ET, timestep = "hourly",
+  exp_drain = TRUE, hourly_out = TRUE
+)
+
+# --- Helper to add a light vertical grid every 24 hours ---
+add_day_grid <- function(H, by = 24) {
+  abline(v = seq(0, H, by = by), col = "grey85", lty = 3)
+}
+
+# ================= PLOT 1: θ (hourly + daily) with initial value =================
+theta_hourly <- res_mono$series$theta
+# Prepend initial θ0 at t = 0
+theta_hourly0 <- c(theta_init, theta_hourly)
+time_hours0   <- 0:H
+
+plot(time_hours0, theta_hourly0, type = "l", col = 1,
+     xlab = "Hour", ylab = expression(theta),
+     main = "Mono-layer muSEC (constant ET)")
+add_day_grid(H)
+
+# Add daily means (computed internally)
+if (!is.null(res_mono$series$theta_daily)) {
+  day_idx <- seq(24, H, by = 24)        # hour position (end of each day)
+  points(day_idx, res_mono$series$theta_daily, pch = 19, col = 2)
+}
+
+# Highlight the initial point θ0
+points(0, theta_init, pch = 21, bg = "white", col = 1, cex = 1.1)
+
+legend("topright",
+       legend = c("Hourly (incl. t=0)", "Daily mean", expression(theta[init])),
+       lty = c(1, NA, NA), pch = c(NA, 19, 21),
+       col = c(1, 2, 1), pt.bg = c(NA, NA, "white"), bty = "n")
+
+# ================= PLOT 2: Evaporation, Transpiration, and Drainage =================
+E_series <- res_mono$series$evap_mm
+T_series <- res_mono$series$transp_mm
+D_series <- res_mono$series$drain_bottom_mm
+
+plot(seq_along(E_series), E_series, type = "l", col = 2, lwd = 2,
+     xlab = "Hour", ylab = "mm/step", main = "E, T, and Deep Drainage")
+add_day_grid(H)
+lines(seq_along(T_series), T_series, col = 4, lwd = 2)
+lines(seq_along(D_series), D_series, col = 1, lty = 2)
+
+legend("topright", legend = c("E", "T", "Deep Drainage"),
+       col = c(2, 4, 1), lty = c(1, 1, 2), lwd = 2, bty = "n")
+```
+
+---
+
+## 2) Multi-layer example (variable ET and LAI)
+
+We simulate 10 days over 0–60 cm soil depth, using six layers (10 cm each).  
+`ET0` varies daily and `LAI` gradually increases.
+
+```{r}
+# --- Define soil structure (depth discretization) ---
+S <- compute_dz_depths(
+  Z_t = 0.6,        # total depth of the soil column [m]
+  dz_top = 0.1,     # thickness of the top layer [m]
+  dz_rest = 0.1,    # thickness of the remaining layers [m]
+  n_top_layers = 1  # number of top layers with different resolution
+)
+
+# --- Initialize θ profile (layer-wise values inferred from averages) ---
+theta_init <- infer_profile_from_averages(
+  S$depths, S$dz,
+  c("0.15" = 0.3, "0.60" = 0.3)  # target average θ at reference depths [m]
+)
+
+# --- Forcing: variable ET and LAI over 10 days ---
+H <- 24 * 10  # 10 days (hourly resolution)
+ET_daily <- 3 + 1.5 * sin(seq(0, 2 * pi, length.out = 10))  # daily ET0 [mm/day]
+ET <- expand_daily_to_hourly_sinusoidale(ET_daily)          # expand to hourly [mm/h]
+LAI <- seq(0.5, 2.0, length.out = H)                        # dynamic LAI (linear increase)
+
+# --- Run multi-layer simulation ---
+res_multi <- musec_simulate(
+  theta_init,
+  list(depths = S$depths, dz = S$dz),
+  Ks = 0.5 / 24, n = 1/8,                 # Ks in m/h
+  theta_s = 0.43, theta_r = 0.00,
+  theta_fc = 0.13, theta_wp = 0.002,
+  theta_star = 0.11,
+  ET = ET, LAI = LAI, timestep = "hourly",
+  exp_drain = TRUE, hourly_out = TRUE
+)
+
+# --- Helper to add daily vertical grid lines ---
+add_day_grid <- function(H, by = 24) {
+  abline(v = seq(0, H, by = by), col = "grey85", lty = 3)
+}
+
+# ================= PLOT 1: θ profiles by layer (hourly, with t=0) =================
+theta_mat <- res_multi$series$theta_mm         # [layers x H], hours = 1..H
+# Prepend t=0 (initial condition) as first column
+theta_mat0   <- cbind(theta_init, theta_mat)   # [layers x (H+1)]
+time_hours0  <- 0:H
+
+matplot(
+  time_hours0, t(theta_mat0), type = "l", lty = 1,
+  xlab = "Hour", ylab = expression(theta),
+  main = "Multi-layer profile (variable ET and LAI)"
+)
+add_day_grid(H)  # vertical lines every 24 h
+
+# Mark initial condition at t = 0
+points(rep(0, length(theta_init)), theta_init, pch = 21, bg = "white", col = 1)
+
+legend(
+  "topright",
+  legend = c(paste("z =", round(S$depths, 2), "m"), expression(theta[init])),
+  lty = c(rep(1, nrow(theta_mat0)), NA),
+  pch = c(rep(NA, nrow(theta_mat0)), 21),
+  col = c(1:nrow(theta_mat0), 1),
+  pt.bg = c(rep(NA, nrow(theta_mat0)), "white"),
+  cex = 0.8, bty = "n"
+)
+
+# ================= PLOT 2: Daily mean θ over 0–30 cm =================
+theta_avg_30 <- res_multi$series$theta_avg_30    # hourly depth-averaged θ (0–30 cm), length = H
+H            <- length(theta_avg_30)
+n_days       <- floor(H / 24)                    # only complete days
+
+# (A) Giorni 2..n: media oraria standard, a blocchi di 24 h
+ThetaMat <- matrix(theta_avg_30[1:(24 * n_days)], nrow = 24, ncol = n_days, byrow = FALSE)
+theta30_daily <- colMeans(ThetaMat)
+
+# (B) Giorno 1 = esattamente θ_init medio su 0–30 cm (dal profilo iniziale)
+theta0_avg30 <- theta_medio_profondita(theta_init, S$depths, S$dz, z_max = 0.30)
+theta30_daily[1] <- theta0_avg30
+
+# (C) Plot con griglia giornaliera e marker del Giorno 1
+plot(
+  x = 1:n_days, y = theta30_daily, type = "b", pch = 19,
+  xlab = "Day", ylab = expression(bar(theta)[0-0.3]),
+  main = "Daily mean depth-averaged \u03B8 (0–30 cm)"
+)
+abline(v = seq(1, n_days, by = 1), col = "grey85", lty = 3)
+points(1, theta30_daily[1], pch = 21, bg = "white", col = 1, cex = 1.15)   # highlight exact θ_init day
+text(1, theta30_daily[1], labels = expression(theta[init]), pos = 3, cex = 0.9)
+```
+
+---
+
+# 3) Profile visualization and daily wrappers
+
+We can visualize layer-wise θ evolution using `plot_profile_stairs()` and automate daily comparisons with `plot_daily_profiles()`. The first three days of drying are visualised: the shaded blue zone between layers indicates water loss.
+
+```{r}
+# Synthetic ET0 for demonstration.
+res_multi_plot <- res_multi
+for (i in 1:24) # Add first day with moisture state equal to theta_init
+  res_multi_plot$series$theta_mm <- cbind(theta_init, res_multi_plot$series$theta_mm) # paste initial condition
+
+steps <- ncol(res_multi_plot$series$theta_mm)
+
+rain_vec <- rbinom(steps, 1, 0.15) * runif(steps, 0, 0) # Zero precipitation is artificially added, as the plotting function is made to hourly  forcing rates
+ET0_vec  <- rep(3/24, steps)
+
+# Example: day-by-day profiles
+depths <- S$depths
+dz <- S$dz
+plot_daily_profiles(
+  res_multi_plot, depths, dz,
+  rain = rain_vec, ET0 = ET0_vec,
+  file = NULL, days = 1:3, xlim = c(0, 0.35),
+  style = "rect", add_areas = TRUE, alpha = 0.3,
+  main_prefix = "muSEC example 0–30 cm"
+)
+```
+
+
+# References
+
+- Ritchie, J. T. (1972). *Model for predicting evaporation from a row crop with incomplete cover.* Water Resources Research, 8(5), 1204–1213.  
+- Or, D., & Lehmann, P. (2019). *Surface evaporative capacitance: How soil type and rainfall form shape evaporative losses.* Water Resources Research, 55(6), 4601–4617.
+
+---
+
+**Note:**  All examples assume SI-consistent units (m, mm, h, day).  

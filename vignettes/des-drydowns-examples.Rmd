@@ -1,0 +1,251 @@
+---
+title: "DES drydowns examples: ET partitioning and bucket soil moisture dynamics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{DES drydowns examples: ET partitioning and bucket soil moisture dynamics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7, fig.height = 4.5, dpi = 120
+)
+
+# Load the package (assumes you installed sm.drydowns.models)
+library(sm.drydowns.models)
+set.seed(123)
+```
+
+## Overview
+
+This vignette demonstrates the **DES** (desorptivity-based) soil moisture drydown model in its **mono-layer** bucket configuration, with
+clear unit conventions and **ET partitioning** via LAI. As done in the associated manuscript, we assume **drydown conditions** (no rainfall).
+
+We show:
+- Daily DES simulations with **hourly-style outputs** (by choosing `dt = 1/24`).
+- **ET partitioning** into evaporation and transpiration using LAI:
+  \[ E = ET_0 \, e^{-k_{\mathrm{ext}} \, LAI}, \qquad T = ET_0 - E, \]
+  where \(k_{\mathrm{ext}} = 0.378\) by default, and \(LAI=1\) if not specified.
+- **Stage-1 evaporation** via desorptivity, **power-law drainage** above field capacity, and **Feddes** transpiration stress.
+- Hourly-like plots (including the initial condition at \(t=0\)) and **daily means**.
+
+> **Units**  
+> - `ET_vec` is **daily** potential ET in **mm/day**.  
+> - Internally, with `dt = 1/24`, a day is split into 24 sub-steps.  
+> - `Ks` is in **m/day** (DES interface).  
+> - `theta` is volumetric water content (**m³/m³**).  
+> - `dz` is layer thickness in **m** (mono-layer).
+
+---
+
+## 1) Constant daily ET (expanded to hourly with `dt=1/24`)
+
+We simulate **5 days** with constant \(ET_0 = 4\) mm/day and \(LAI = 1\).  
+Since this is a drydown example, we set rainfall to zero.
+
+```{r}
+# --- Simulation settings ---
+n_days     <- 5
+theta_init <- 0.30
+dz         <- 0.10          # layer thickness [m]
+Ks_day     <- 1.0           # Ks [m/day]
+n_vg       <- 1/4          # shape parameter (n = 1/beta)
+theta_s    <- 0.40
+theta_r    <- 0.005
+theta_fc   <- 0.17
+theta_wp   <- 0.01
+theta_star <- 0.16
+psi_b      <- 0.02        # bubbling pressure [m], example value
+k_ext      <- 0.378         # default extinction coefficient
+root_depth <- 0.60
+
+# Forcing (daily)
+rain_vec <- rep(0, n_days)      # drydown: no rain
+ET_vec   <- rep(2, n_days)      # 4 mm/day, constant
+LAI_vec  <- rep(1, n_days)      # constant LAI
+
+# Choose dt = 1/24 to get 24 sub-steps per day (hourly-like output)
+res_des <- des_simulate(
+  Ks          = Ks_day,
+  n           = n_vg,
+  theta_init  = theta_init,
+  rain_vec    = rain_vec,
+  ET_vec      = ET_vec,
+  LAI_vec     = LAI_vec,
+  theta_r     = theta_r,
+  theta_s     = theta_s,
+  theta_fc    = theta_fc,
+  theta_star  = theta_star,
+  theta_wp    = theta_wp,
+  psi_b       = psi_b,
+  root_depth  = root_depth,
+  dt          = 1/24,    # 24 sub-steps per day
+  dz          = dz,
+  desorp      = TRUE,
+  debug       = FALSE,
+  hourly      = TRUE,    # return sub-step series (24 per day)
+  rain_split  = "first"
+)
+
+# Helper to add a light vertical grid every 24 sub-steps (one day)
+add_day_grid <- function(total_steps, by = 24) {
+  abline(v = seq(0, total_steps, by = by), col = "grey85", lty = 3)
+}
+
+# Extract hourly-like series and prepend the initial point at t=0
+theta_series <- res_des$series$theta
+H            <- length(theta_series)      # total sub-steps (n_days * 24)
+theta0_series <- c(theta_init, theta_series)
+time0         <- 0:H
+
+# ---- Plot θ (hourly-like) with the initial value and daily means ----
+plot(time0, theta0_series, type = "l", col = 1,
+     xlab = "Hour (sub-steps)", ylab = expression(theta),
+     main = "DES mono-layer (constant ET = 4 mm/day)")
+add_day_grid(H)
+
+# punti rossi = medie giornaliere (nuovo comportamento)
+points(seq(24, H, by = 24), res_des$series$theta_daily, pch = 19, col = 2)
+
+# se vuoi anche il valore "ultima ora" del giorno, usa:
+points(seq(24, H, by = 24), res_des$series$theta_end_daily, pch = 1, col = 4)
+
+# Highlight the initial θ0 at t = 0
+points(0, theta_init, pch = 21, bg = "white", col = 1, cex = 1.1)
+
+legend(
+  "topright",
+  legend = c(
+    "Sub-step (incl. t=0)",
+    "Daily mean",
+    "End-of-day",
+    expression(theta[init])
+  ),
+  lty   = c(1, NA, NA, NA),
+  pch   = c(NA, 19, 1, 21),
+  col   = c(1, 2, 4, 1),
+  pt.bg = c(NA, NA, NA, "white"),
+  bty   = "n"
+)
+```
+
+We also visualize the **partitioned fluxes** (evaporation, transpiration) and **drainage** per sub-step.
+
+```{r}
+# --- Extract sub-step fluxes ---
+E_series <- res_des$series$evap_mm
+T_series <- res_des$series$transp_mm
+D_series <- res_des$series$drain_mm
+
+# --- Set up 3 vertical panels ---
+par(mfrow = c(3, 1), mar = c(4, 4, 3, 2))
+
+# --- Helper for grid ---
+add_day_grid <- function(total_steps, by = 24) {
+  abline(v = seq(0, total_steps, by = by), col = "grey85", lty = 3)
+}
+
+# --- Plot 1: Evaporation (E) ---
+plot(seq_along(E_series), E_series, type = "l", col = 2, lwd = 2,
+     xlab = "Hour (sub-steps)", ylab = "E [mm/step]",
+     main = "Evaporation (E)",
+     ylim = c(0, max(E_series, na.rm = TRUE)))
+add_day_grid(length(E_series))
+
+# --- Plot 2: Transpiration (T) ---
+plot(seq_along(T_series), T_series, type = "l", col = 4, lwd = 2,
+     xlab = "Hour (sub-steps)", ylab = "T [mm/step]",
+     main = "Transpiration (T)",
+     ylim = c(0, max(T_series, na.rm = TRUE)))
+add_day_grid(length(T_series))
+
+# --- Plot 3: Drainage (D) ---
+plot(seq_along(D_series), D_series, type = "l", col = 1, lwd = 2, lty = 2,
+     xlab = "Hour (sub-steps)", ylab = "D [mm/step]",
+     main = "Deep Drainage (D)",
+     ylim = c(0, max(D_series, na.rm = TRUE)))
+add_day_grid(length(D_series))
+
+# --- Reset layout ---
+par(mfrow = c(1, 1))
+
+```
+
+---
+
+## 2) Variable daily ET and LAI (20 days), with sensitivity to \\(k_{ext}\\)
+
+We simulate **20 days** with sinusoidal daily \(ET_0\) and a gradually increasing \(LAI\).
+We also compare three values of \(k_{ext}\) for the ET partitioning.
+
+```{r}
+n_days2 <- 20
+
+# Daily forcing
+rain2 <- rep(0, n_days2)
+ET2   <- 3 + 1.5 * sin(seq(0, 2*pi, length.out = n_days2))  # mm/day
+LAI2  <- seq(0.8, 2.0, length.out = n_days2)
+
+# A small wrapper to run DES with a given k_ext
+run_des_k <- function(kext) {
+  des_simulate(
+    Ks          = Ks_day,
+    n           = n_vg,
+    theta_init  = theta_init,
+    rain_vec    = rain2,
+    ET_vec      = ET2,
+    LAI_vec     = LAI2,
+    k_ext       = kext,
+    theta_r     = theta_r,
+    theta_s     = theta_s,
+    theta_fc    = theta_fc,
+    theta_star  = theta_star,
+    theta_wp    = theta_wp,
+    psi_b       = psi_b,
+    root_depth  = root_depth,
+    dt          = 1/24,     # 24 sub-steps per day (hourly-like)
+    dz          = dz,
+    desorp      = TRUE,
+    debug       = FALSE,
+    hourly      = TRUE,
+    rain_split  = "first"
+  )
+}
+
+old_k <- getOption("sm.drydowns.k_ext", default = 0.378)
+
+options(sm.drydowns.k_ext = 0.30);  res_k030 <- run_des_k(0.30)
+options(sm.drydowns.k_ext = 0.378); res_k038 <- run_des_k(0.378)
+options(sm.drydowns.k_ext = 0.50);  res_k050 <- run_des_k(0.50)
+
+# restore original
+options(sm.drydowns.k_ext = old_k)
+
+# Plot θ (sub-step) for the three k_ext values; prepend t=0 for each
+to_series <- function(res) c(theta_init, res$series$theta)
+H2 <- length(res_k030$series$theta)
+time2 <- 0:H2
+
+plot(time2, to_series(res_k030), type = "l", col = 1,
+     xlab = "Hour (sub-steps)", ylab = expression(theta),
+     main = expression(paste("DES mono-layer: sensitivity to ", k[ext])))
+add_day_grid(H2)
+lines(time2, to_series(res_k038), col = 2, lty = 2)
+lines(time2, to_series(res_k050), col = 4, lty = 3)
+
+legend("topright", legend = c("k_ext = 0.30", "k_ext = 0.378", "k_ext = 0.50"),
+       col = c(1, 2, 4), lty = c(1, 2, 3), bty = "n")
+```
+
+---
+
+### Notes
+
+- This vignette uses **drydown** assumptions (`rain_vec = 0`). The DES interface supports rainfall, but precipitation days
+  are handled in a simplified way (no evaporation/transpiration/extra drainage during the rainy day), consistent
+  with the goal of focusing on **post-event drying**.
+- The **analytical drainage** option is exposed in the interface but is **not used** here; the default is **power-law drainage**,
+  consistent with the muSEC approach.

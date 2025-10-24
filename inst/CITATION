@@ -1,0 +1,13 @@
+citHeader("To cite the package in publications use:")
+
+citEntry(
+  entry    = "Manual",
+  title    = "sm.drydowns.models: DES and muSEC Models for Soil Moisture Drydowns (R package)",
+  author   = personList(
+               person("Tommaso", "Martini", email="tommaso.martini@unito.it"),
+               person("Aurora",  "Olivero", email="aurora.olivero@unito.it")
+             ),
+  year     = "2025",
+  note     = "R package version 1.0.0",
+  url      = "https://doi.org/10.2139/ssrn.5648370"
+)

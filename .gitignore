@@ -1,0 +1,25 @@
+# R build
+.Rhistory
+.RData
+.Rproj.user
+.Ruserdata
+.Rproj
+.Rbuildignore
+.Rprofile
+.DS_Store
+.vscode/
+.idea/
+.Rproj.user/
+/inst/doc
+/renv/library
+/renv/staging
+/packrat/
+/target/
+/dist/
+*.tar.gz
+*.Rcheck/
+*.log
+*.aux
+*.out
+*.toc
+*.pdf

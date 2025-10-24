@@ -1,0 +1,53 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+type: software
+title: "sm.drydowns.models: DES and muSEC models for soil moisture drydowns"
+version: "1.0.0"
+abstract: >
+  Reference implementation in R of two simplified hydrological models for soil moisture drydowns:
+  the desorptivity-based model (DES) and the multilayer Surface Evaporative Capacitance (muSEC).
+  Includes utilities and vignettes to reproduce the analyses in the associated manuscript.
+authors:
+  - family-names: Martini
+    given-names: Tommaso
+    affiliation: "Interuniversity Department of Regional and Urban Studies and Planning (DIST), University of Turin (UniTo), Italy"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"   # add if/when available
+  - family-names: Olivero
+    given-names: Aurora
+    affiliation: "Interuniversity Department of Regional and Urban Studies and Planning (DIST), University of Turin (UniTo), Italy"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"   # add if/when available
+license: MIT
+repository-code: "https://github.com/yourname/sm.drydowns.models"
+keywords:
+  - soil moisture
+  - drydown
+  - hydrology
+  - ecohydrology
+  - DES
+  - muSEC
+  - R
+
+# Link the preprint that the software supports
+identifiers:
+  - type: doi
+    value: 10.2139/ssrn.5648370
+    description: "Preprint describing the modelling framework validated with field TDR and remote sensing data"
+
+# Tell users how to cite the manuscript (preferred citation)
+preferred-citation:
+  type: article
+  title: "From near surface to root zone soil water losses: a new model validated with field TDR and remotely sensed data"
+  authors:
+    - family-names: Martini
+      given-names: Tommaso
+    - family-names: Gentile
+      given-names: Alessio
+    - family-names: Gisolo
+      given-names: Davide
+    - family-names: Olivero
+      given-names: Aurora
+    - family-names: Ferraris
+      given-names: Stefano
+  year: 2025
+  journal: "Preprint/Manuscript"
+  doi: 10.2139/ssrn.5648370

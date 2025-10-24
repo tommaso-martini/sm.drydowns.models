@@ -11,13 +11,11 @@ authors:
   - family-names: Martini
     given-names: Tommaso
     affiliation: "Interuniversity Department of Regional and Urban Studies and Planning (DIST), University of Turin (UniTo), Italy"
-    # orcid: "https://orcid.org/0000-0000-0000-0000"   # add if/when available
   - family-names: Olivero
     given-names: Aurora
     affiliation: "Interuniversity Department of Regional and Urban Studies and Planning (DIST), University of Turin (UniTo), Italy"
-    # orcid: "https://orcid.org/0000-0000-0000-0000"   # add if/when available
 license: MIT
-repository-code: "https://github.com/yourname/sm.drydowns.models"
+repository-code: "https://github.com/tommaso-martini/sm.drydowns.models"
 keywords:
   - soil moisture
   - drydown
@@ -25,9 +23,9 @@ keywords:
   - ecohydrology
   - DES
   - muSEC
-  - R
+  - R package
 
-# Link the preprint that the software supports
+# --- Identifiers (software DOI + related article DOI) ---
 identifiers:
   - type: doi
     value: 10.5281/zenodo.17435863
@@ -35,21 +33,37 @@ identifiers:
   - type: doi
     value: 10.2139/ssrn.5648370
     description: "Preprint describing the modelling framework validated with field TDR and remote sensing data"
-# Tell users how to cite the manuscript (preferred citation)
+
+# --- Preferred citation for the SOFTWARE itself (used by Zenodo) ---
 preferred-citation:
-  type: article
-  title: "From near surface to root zone soil water losses: a new model validated with field TDR and remotely sensed data"
+  type: software
+  title: "sm.drydowns.models: DES and muSEC models for soil moisture drydowns (R package)"
   authors:
     - family-names: Martini
       given-names: Tommaso
-    - family-names: Gentile
-      given-names: Alessio
-    - family-names: Gisolo
-      given-names: Davide
     - family-names: Olivero
       given-names: Aurora
-    - family-names: Ferraris
-      given-names: Stefano
   year: 2025
-  journal: "Preprint/Manuscript"
-  doi: 10.2139/ssrn.5648370
+  version: "1.0.0"
+  doi: 10.5281/zenodo.17435863
+  url: "https://github.com/tommaso-martini/sm.drydowns.models"
+  license: "MIT"
+
+# --- Optional: Reference to the scientific article (for context only) ---
+references:
+  - type: article
+    title: "From near surface to root zone soil water losses: a new model validated with field TDR and remotely sensed data"
+    authors:
+      - family-names: Martini
+        given-names: Tommaso
+      - family-names: Gentile
+        given-names: Alessio
+      - family-names: Gisolo
+        given-names: Davide
+      - family-names: Olivero
+        given-names: Aurora
+      - family-names: Ferraris
+        given-names: Stefano
+    year: 2025
+    journal: "Preprint/Manuscript"
+    doi: 10.2139/ssrn.5648370
